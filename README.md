@@ -856,4 +856,5 @@ FEM / LIU）。数数把「处决」变成仪式、把「运行」念成咒语�
 `__backend/Cli/original_assestss/` 都是为了让项目**能直接跑起来、并留存演示**而附带的存档，
 不是以再分发为目的；若权利人提出要求，会立刻移除这些媒体文件（删掉不影响代码本身）。
 
-**代码**（`src/`、`run.sh`、`doc/`、`README.md`）可自由修改取用，见 [LICENSE](LICENSE)（MIT）。
+**代码**（`src/`、`run.sh`、`doc/`、`README.md`）可自由修改取用，见 [LICENSE](LICENSE)（MIT）；
+素材部分的说明另见 [NOTICE](NOTICE)。

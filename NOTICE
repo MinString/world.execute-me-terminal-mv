@@ -1,0 +1,14 @@
+本仓库同时包含非代码素材，它们不适用上面的 MIT 许可：
+
+  • 歌曲《world.execute(me);》的歌词、音频与原始影像，版权归 Mili /
+    各自权利人所有；`src/lyrics.py` 里的歌词、`assets/world-execute-me.m4a`、
+    `out/world-execute-me_16x9_1080p.mp4`、`__backend/**/assets/` 与
+    `__backend/Cli/original_assestss/` 都是为了让这个粉丝向项目能直接跑起来、
+    并留存演示而附带的存档，不是以再分发为目的。
+  • 若权利人提出要求，会立刻移除这些文件；删掉它们不影响代码本身
+    （音频可用任意同名文件替换，`src/video.py` 也能在没有音频时照常出片）。
+
+    The song "world.execute(me);" — lyrics, audio and the original video —
+    is (c) Mili / the respective rights holders.  Media files archived here
+    exist so this non-commercial fan project stays runnable and demonstrable;
+    they are not intended for redistribution and will be removed on request.

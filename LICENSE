@@ -19,11 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-NOTE: this license covers the CODE only (src/, run.sh, doc/).  The song
-"world.execute(me);" — lyrics, audio and the original video — is (c) Mili /
-the respective rights holders, and the media files archived in this repository
-(assets/, out/, __backend/**/assets/) are included for the non-commercial fan
-project to be runnable/demonstrable, not for redistribution.
