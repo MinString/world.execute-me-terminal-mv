@@ -6,6 +6,7 @@ import anim
 import art
 import fx
 import lyrics
+import opts
 from base import Scene, stamp, fade_window, ramp, cue, glow_text
 from renderer import mix, shade, grey, P, h01, sw
 
@@ -727,7 +728,8 @@ class IntroScene(Scene):
             lines = (
                 "—  Mili  ·  Miracle Milk (2016)  —",
                 "a terminal music video · 终端 ASCII MV",
-                "中英双语字幕 · 与歌同步 · ♥",
+                "中英双语字幕 · 与歌同步 · ♥" if opts.ZH else
+                "英文字幕 · 与歌同步 · ♥",
                 "NTSC 525/60 · 60Hz · PHOSPHOR P1",
             )
             for j, line in enumerate(lines):

@@ -13,8 +13,16 @@ Grid and geometry
 1920 x 1054; the frame is 1920 x 1080 (16:9), the remaining 26 px are split
 evenly above and below (black, so invisible on the dark picture).
 
+By default the film is English-only: the Chinese line lives *below* the
+frame, and the 31 visible rows are what fits in 16:9.  ``--zh`` adds it: the
+grid becomes 32 rows (one scene row traded for the Chinese line,
+``h_canvas = ROWS - 1``) and the 34 px of extra height are trimmed from the
+black padding top and bottom -- still exactly 1920x1080, cells still 15x34,
+and the intro card then says ``中英双语字幕`` instead of ``英文字幕``.
+
     python3 src/video.py --preview 42,120,155     # a few PNG frames
     python3 src/video.py                          # the whole film
+    python3 src/video.py --zh --out out/zh.mp4    # + the Chinese subtitle line
 """
 import argparse
 import json
@@ -28,6 +36,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
 import mv                                             # noqa: E402
+import opts                                           # noqa: E402
 from renderer import cw, CONT                         # noqa: E402
 from PIL import Image, ImageDraw, ImageFont           # noqa: E402
 
@@ -161,12 +170,13 @@ class Painter:
         return s
 
 
-def paint(cv, painter, img=None):
-    """Draw one canvas (chars + colours) into a 1920x1054 RGB image."""
-    img = img or Image.new("RGB", (COLS * CW, ROWS * CH), (0, 0, 0))
+def paint(cv, painter, rows=None, img=None):
+    """Draw one canvas (chars + colours) into a COLS*CW x rows*CH RGB image."""
+    rows = ROWS if rows is None else rows
+    img = img or Image.new("RGB", (COLS * CW, rows * CH), (0, 0, 0))
     d = ImageDraw.Draw(img)
     # backgrounds first: one rectangle per run of equal colour
-    for y in range(ROWS):
+    for y in range(rows):
         bgs = cv.bg[y]
         x = 0
         while x < COLS:
@@ -181,7 +191,7 @@ def paint(cv, painter, img=None):
             x = x2
     # then the glyphs, tinted; painted from the padded canvas so the 1 px
     # overhang of box characters spills over and the rules stay seamless
-    for y in range(ROWS):
+    for y in range(rows):
         chs = cv.ch[y]
         fgs = cv.fg[y]
         for x in range(COLS):
@@ -198,10 +208,16 @@ def paint(cv, painter, img=None):
     return img
 
 
-def frame(t, painter):
-    cv, _ = mv.compose(t, COLS, ROWS, ROWS + 1, hint=False)
-    img = paint(cv, painter)
-    if (OUT_W, OUT_H) == (COLS * CW, ROWS * CH):
+def frame(t, painter, zh=False):
+    """One 1920x1080 frame; zh also draws the Chinese line under the frame."""
+    if zh:
+        # 32 rows: h_canvas loses one row so the Chinese line gets the last one
+        cv, _ = mv.compose(t, COLS, ROWS - 1, ROWS + 1, hint=False)
+        img = paint(cv, painter, rows=ROWS + 1)      # 32 * 34 = 1088 -> trim 4+4
+    else:
+        cv, _ = mv.compose(t, COLS, ROWS, ROWS + 1, hint=False)
+        img = paint(cv, painter)                     # 31 * 34 = 1054 -> pad 13+13
+    if img.size == (OUT_W, OUT_H):
         return img
     frame_img = Image.new("RGB", (OUT_W, OUT_H), (0, 0, 0))
     frame_img.paste(img, (0, (OUT_H - img.height) // 2))
@@ -211,8 +227,11 @@ def frame(t, painter):
 # ------------------------------------------------------------- driver ------
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=os.path.join(ROOT, "out",
-                                                  "world-execute-me_16x9_1080p.mp4"))
+    ap.add_argument("--out", default="",
+                    help="输出路径（默认 out/world-execute-me_16x9_1080p[_zh].mp4）")
+    ap.add_argument("--zh", action="store_true",
+                    help="把画面下方那行中文字幕也渲进去"
+                         "（默认不加：成片只有画面内的英文字幕）")
     ap.add_argument("--audio", default=os.path.join(ROOT, "assets",
                                                     "world-execute-me.m4a"))
     ap.add_argument("--start", type=float, default=0.0)
@@ -224,12 +243,17 @@ def main():
                     help="comma separated times -> PNG frames, no video")
     ap.add_argument("--preview-dir", default=os.path.join(ROOT, "out"))
     args = ap.parse_args()
+    opts.ZH = bool(args.zh)
+    if not args.out:
+        args.out = os.path.join(ROOT, "out", "world-execute-me_16x9_1080p%s.mp4"
+                                % ("_zh" if args.zh else ""))
 
     chars = set()
     t = args.start
     # collect the glyphs actually used in the rendered range
     while t < args.end:
-        cv, _ = mv.compose(t, COLS, ROWS, ROWS + 1, hint=False)
+        cv, _ = mv.compose(t, COLS, ROWS - 1 if args.zh else ROWS, ROWS + 1,
+                           hint=False)
         for row in cv.ch:
             chars.update(c for c in row if c and c != " " and c != CONT)
         t += 1.31
@@ -240,7 +264,7 @@ def main():
         times = [float(x) for x in args.preview.split(",")]
         os.makedirs(args.preview_dir, exist_ok=True)
         for t in times:
-            img = frame(t, painter)
+            img = frame(t, painter, args.zh)
             p = os.path.join(args.preview_dir, "preview_%06.2f.png" % t)
             img.save(p)
             print("wrote", p, img.size)
@@ -264,7 +288,7 @@ def main():
     try:
         for i in range(n):
             t = args.start + i / float(args.fps)
-            proc.stdin.write(frame(t, painter).tobytes())
+            proc.stdin.write(frame(t, painter, args.zh).tobytes())
             if i % 120 == 0:
                 el = time.time() - t0
                 eta = el / (i + 1) * (n - i - 1)

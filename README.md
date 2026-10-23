@@ -80,7 +80,14 @@ python3 src/video.py     # 同一条时间轴渲染成 16:9 的 1920×1080 MP4�
 python3 src/video.py                    # → out/world-execute-me_16x9_1080p.mp4（3:31.9）
 python3 src/video.py --preview 42,155   # 先出几张 PNG 看效果（out/preview_*.png）
 python3 src/video.py --start 40 --end 60 --out out/00-40-60.mp4   # 只渲一段
+python3 src/video.py --zh --out out/world-execute-me_16x9_1080p_zh.mp4   # 连中文字幕一起渲
 ```
+
+**中文字幕默认不在成片里**。画面外那行中文是网格的第 32 行，31 行的 16:9 画面塞不下，
+所以默认成片只有画面内的英文，开场标题卡据此写「英文字幕 · 与歌同步」而不是「中英双语字幕」。
+要连中文一起，加 `--zh`：网格变 32 行（从画面里让出一行给中文字幕，`h_canvas = ROWS - 1`），
+32 × 34 = 1088 px 上下各裁 4 px 留白 —— 仍是 **1920×1080、格子仍是 15×34**，字还是没拉伸；
+这时标题卡自动换回「中英双语字幕 · 与歌同步」。开关就是 `src/opts.py` 里的 `opts.ZH`。
 
 **画面就是终端那幅画**，不是另画一版：`src/video.py` 调的是播放器同一个
 `mv.compose()`，一格字符 = 一个格子，逐格贴到像素上（背景色块 → 字形，宽字符占两格、
@@ -89,17 +96,18 @@ python3 src/video.py --start 40 --end 60 --out out/00-40-60.mp4   # 只渲一段
 | 项 | 值 |
 |---|---|
 | 画幅 | **1920×1080（16:9）** |
-| 网格 | 128 列 × 31 行，每格 15×34 px（= 1920×1054，上下各补 13 px 黑边） |
+| 网格 | 128 列 × 31 行，每格 15×34 px（= 1920×1054，上下各补 13 px 黑边）；`--zh` 时 32 行 |
 | 帧率 | 30 fps（6354 帧） |
 | 编码 | H.264 `yuv420p` / CRF 18 / high@4.1，AAC 44.1 kHz 立体声原音轨，`+faststart` |
 | 时长 / 体积 | 3:31.9 / 84 MB |
-| 渲染速度 | ~37 fps（16 核约 2 分 52 秒渲完） |
+| 渲染速度 | ~34–37 fps（16 核约 3 分钟渲完） |
+| 字幕 | 默认只有画面内英文；`--zh` 才带上画面外那行中文（标题卡随之改字） |
 
 - **字体**：Maple Mono NF CN（等宽 + Nerd 图标 + 中日韩），25 px 时字宽正好 15 px、
   行高 34 px —— **格子和字体的原生格一致，字没有拉伸**；它缺的 35 个符号自动落到
   JetBrains Mono / DejaVu / Noto CJK（开渲前探测一遍，结果缓存在 `.cache/fontmap.json`）。
 - **验收**：从成片里按帧号解码回 4 帧（t=42 / 120 / 155 / 205.9），与直接渲染的参考帧
-  逐像素比对 **PSNR 35.7–43.9 dB**（CRF 18 + 4:2:0 的正常损耗，肉眼无差）；全片平均亮度
+  逐像素比对 **PSNR 35.8–43.9 dB**（CRF 18 + 4:2:0 的正常损耗，肉眼无差）；全片平均亮度
   18.5–30.9，没有空帧；第 10 版的 ∞ 缺口在成片里仍是**全黑的一格不剩**（逐格采样 ink=0）。
 - **改尺寸**：`src/video.py` 顶部 `COLS / ROWS / CW / CH` 四个常量决定网格与格子的像素；
   `CW=15, CH=34` 是那套字 25 px 的原生格，改字体会连带改这两个数。`OUT_W/OUT_H` 保持
@@ -114,7 +122,7 @@ python3 src/video.py --start 40 --end 60 --out out/00-40-60.mp4   # 只渲一段
 ├── run.sh                       启动器
 ├── assets/world-execute-me.m4a  工作用音频（从原 mp4 抽出 AAC，3:31.9）
 ├── out/world-execute-me_16x9_1080p.mp4  导出的 16:9 成片（1920×1080, 30 fps, 84 MB）
-├── doc/prompt-history.md        提示词纪要：34 轮要求逐条记录（你要什么 → 改了什么 → 结果）
+├── doc/prompt-history.md        提示词纪要：35 轮要求逐条记录（你要什么 → 改了什么 → 结果）
 ├── doc/preview.gif              README 顶部那段 5 秒预览（成片 0:40 的 ∞）
 ├── __backend/Cli/original_assestss/  最初上传的原始素材（Mili 的 mp4 + lrc + m4a，未改动）
 ├── __backend/V1 … V8/          历史版本快照（每版各自的 README / run.sh / src / assets）
@@ -138,6 +146,7 @@ python3 src/video.py --start 40 --end 60 --out out/00-40-60.mp4   # 只渲一段
     ├── obsess.py      输入行的「执念」层：同一句英文可以重复打、删了重打、
     │                  `[only]` 记号——都只是 t 的函数，不碰时间轴
     ├── video.py       导出视频：同一帧画成像素、管道喂给 ffmpeg → 16:9 MP4
+    │                  （`--zh` 把画面外那行中文字幕也渲进去）
     ├── scenes_a.py    Intro / Verse1 / Verse2 / Pre1 / Chorus1
     ├── scenes_b.py    Verse3 / Pre2 / Chorus2 / Bridge / Build
     └── scenes_c.py    Chant / Final / Outro / Shutdown / EndCard
@@ -583,6 +592,10 @@ ffmpeg —— `src/video.py` 调的还是播放器那个 `mv.compose()`，128×3
 正好 1920×1054，上下各补 13 px 黑边就是 1920×1080，30 fps / CRF 18 / AAC 原音轨。
 它**不是另画一版**：终端里那幅画什么样，成片就什么样。细节见上面
 「第 11 版 · 输出成视频（16:9 MP4）」一节。
+
+（后来补的一条：终端画面外那行中文进不了 31 行的 16:9，所以成片默认只保留画面内英文，
+开场标题卡也跟着写「英文字幕」；要中文就 `--zh`，网格让一行给字幕、上下各裁 4 px 留白，
+标题卡换回「中英双语字幕」。）
 
 ---
 
