@@ -1,0 +1,11 @@
+# 生成物 / 本地缓存（重新跑一次就会重建）
+.cache/
+__pycache__/
+*.py[cod]
+*.log
+
+# 系统/编辑器杂物
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
